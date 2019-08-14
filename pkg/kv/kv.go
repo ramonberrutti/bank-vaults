@@ -40,3 +40,19 @@ type Service interface {
 	Set(key string, value []byte) error
 	Get(key string) ([]byte, error)
 }
+
+type Tester struct {
+	Service Service
+}
+
+func (t Tester) Test(key string) error {
+	_, err := t.Service.Get(key)
+
+	if err != nil {
+		if _, ok := err.(*NotFoundError); !ok {
+			return err
+		}
+	}
+
+	return t.Service.Set(key, []byte(key))
+}

@@ -16,6 +16,9 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"plugin"
+	"strings"
 
 	"github.com/banzaicloud/bank-vaults/pkg/kv"
 	"github.com/banzaicloud/bank-vaults/pkg/kv/alibabakms"
@@ -164,7 +167,40 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 
 		return file, nil
 
+	case cfgModeValuePlugin:
+
+		// go build -buildmode=plugin -o mykv.so ./hack/mykv.go
+		// bank-vaults configure --mode plugin --plugin-config path=mykv.so
+
+		configRaw := cfg.GetStringSlice(cfgPluginConfig)
+
+		// Hack until https://github.com/spf13/viper/issues/608 gets fixed
+		config := map[string]string{}
+		for _, c := range configRaw {
+			s := strings.Split(c, "=")
+			config[s[0]] = s[1]
+		}
+
+		path, ok := config["path"]
+		if !ok {
+			return nil, fmt.Errorf("plugin path is missing")
+		}
+
+		plug, err := plugin.Open(path)
+		if err != nil {
+			return nil, fmt.Errorf("unsupported plugin: '%s'", cfg.GetString(cfgMode))
+		}
+
+		New, err := plug.Lookup("New")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+
+		//call the NewService function
+		return New.(func(map[string]string) (kv.Service, error))(config)
+
 	default:
-		return nil, fmt.Errorf("Unsupported backend mode: '%s'", cfg.GetString(cfgMode))
+		return nil, fmt.Errorf("unsupported backend mode: '%s'", cfg.GetString(cfgMode))
 	}
 }

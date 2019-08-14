@@ -37,6 +37,9 @@ const cfgModeValueAlibabaKMSOSS = "alibaba-kms-oss"
 const cfgModeValueK8S = "k8s"
 const cfgModeValueDev = "dev"
 const cfgModeValueFile = "file"
+const cfgModeValuePlugin = "plugin"
+
+const cfgPluginConfig = "plugin-config"
 
 const cfgGoogleCloudKMSProject = "google-cloud-kms-project"
 const cfgGoogleCloudKMSLocation = "google-cloud-kms-location"
@@ -93,6 +96,11 @@ func configStringVar(key, defaultValue, description string) {
 	appConfig.BindPFlag(key, rootCmd.PersistentFlags().Lookup(key))
 }
 
+func configStringToStringVar(key string, defaultValue []string, description string) {
+	rootCmd.PersistentFlags().StringSlice(key, defaultValue, description)
+	appConfig.BindPFlag(key, rootCmd.PersistentFlags().Lookup(key))
+}
+
 func init() {
 	appConfig = viper.New()
 	appConfig.SetEnvPrefix("bank_vaults")
@@ -111,7 +119,8 @@ func init() {
 						'%s' => Alibaba OSS with KMS encryption;
 						'%s' => Kubernetes Secrets;
 						'%s' => Dev (vault server -dev) mode
-						'%s' => File mode`,
+						'%s' => File mode
+						'%s' => Plugin mode`,
 			cfgModeValueGoogleCloudKMSGCS,
 			cfgModeValueAWSKMS3,
 			cfgModeValueAzureKeyVault,
@@ -119,6 +128,7 @@ func init() {
 			cfgModeValueK8S,
 			cfgModeValueDev,
 			cfgModeValueFile,
+			cfgModeValuePlugin,
 		),
 	)
 
@@ -167,6 +177,9 @@ func init() {
 
 	// File flags
 	configStringVar(cfgFilePath, "", "The path prefix of the files where to store values in")
+
+	// Plugin flags
+	configStringToStringVar(cfgPluginConfig, []string{}, "The plugin configuration")
 }
 
 func main() {
