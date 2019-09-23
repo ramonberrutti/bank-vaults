@@ -17,7 +17,7 @@ package alibabakms
 import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/kms"
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
 )
 
 type alibabaKMS struct {
@@ -30,7 +30,7 @@ type alibabaKMS struct {
 var _ kv.Service = &alibabaKMS{}
 
 // New creates a new kv.Service encrypted by Alibaba KMS
-func New(regionID, accessKeyID, accessKeySecret, kmsID string, store kv.Service) (kv.Service, error) {
+func New(store kv.Service, regionID, accessKeyID, accessKeySecret, kmsID string) (kv.Service, error) {
 	client, err := kms.NewClientWithAccessKey(regionID, accessKeyID, accessKeySecret)
 	if err != nil {
 		return nil, err

@@ -19,19 +19,19 @@ import (
 	"os"
 	"path"
 
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
 )
 
 type file struct {
 	path string
 }
 
+var _ kv.Service = &file{}
+
 // New creates a new kv.Service backed by files, without any encryption
-func New(path string) (service kv.Service, err error) {
+func New(path string) (kv.Service, error) {
 
-	service = &file{path: path}
-
-	return
+	return &file{path: path}, nil
 }
 
 func (f *file) Set(key string, val []byte) error {

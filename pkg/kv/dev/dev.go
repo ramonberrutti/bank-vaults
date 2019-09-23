@@ -19,12 +19,14 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
 )
 
 type dev struct {
 	rootToken []byte
 }
+
+var _ kv.Service = &dev{}
 
 // New creates a new kv.Service backed by memory, only the root token is stored, should be used with: vault server -dev
 func New() (service kv.Service, err error) {

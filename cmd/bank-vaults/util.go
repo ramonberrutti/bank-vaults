@@ -16,11 +16,9 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"plugin"
 	"strings"
 
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
 	"github.com/banzaicloud/bank-vaults/pkg/kv/alibabakms"
 	"github.com/banzaicloud/bank-vaults/pkg/kv/alibabaoss"
 	"github.com/banzaicloud/bank-vaults/pkg/kv/awskms"
@@ -31,6 +29,7 @@ import (
 	"github.com/banzaicloud/bank-vaults/pkg/kv/gcs"
 	"github.com/banzaicloud/bank-vaults/pkg/kv/k8s"
 	"github.com/banzaicloud/bank-vaults/pkg/kv/s3"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
 	"github.com/banzaicloud/bank-vaults/pkg/sdk/vault"
 	"github.com/spf13/viper"
 )
@@ -128,11 +127,12 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 		}
 
 		kms, err := alibabakms.New(
+			oss,
 			cfg.GetString(cfgAlibabaKMSRegion),
 			accessKeyID,
 			accessKeySecret,
 			cfg.GetString(cfgAlibabaKMSKeyID),
-			oss)
+		)
 		if err != nil {
 			return nil, fmt.Errorf("error creating Alibaba KMS kv store: %s", err.Error())
 		}
@@ -169,15 +169,24 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 
 	case cfgModeValuePlugin:
 
+		// We support only K8S storage for custom encryption plugins currently
+		k8s, err := k8s.New(
+			cfg.GetString(cfgK8SNamespace),
+			cfg.GetString(cfgK8SSecret),
+		)
+
 		// go build -buildmode=plugin -o mykv.so ./hack/mykv.go
 		// bank-vaults configure --mode plugin --plugin-config path=mykv.so
 
 		configRaw := cfg.GetStringSlice(cfgPluginConfig)
 
-		// Hack until https://github.com/spf13/viper/issues/608 gets fixed
+		// Workaround until https://github.com/spf13/viper/issues/608 gets fixed
 		config := map[string]string{}
 		for _, c := range configRaw {
-			s := strings.Split(c, "=")
+			s := strings.SplitN(c, "=", 2)
+			if len(s) != 2 {
+				return nil, fmt.Errorf("failed to parse plugin config")
+			}
 			config[s[0]] = s[1]
 		}
 
@@ -191,14 +200,17 @@ func kvStoreForConfig(cfg *viper.Viper) (kv.Service, error) {
 			return nil, fmt.Errorf("unsupported plugin: '%s'", cfg.GetString(cfgMode))
 		}
 
-		New, err := plug.Lookup("New")
+		constructor, err := plug.Lookup("NewKV")
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(-1)
+			return nil, fmt.Errorf("failed to lookup constuctor in plugin")
 		}
 
-		//call the NewService function
-		return New.(func(map[string]string) (kv.Service, error))(config)
+		switch NewKV := constructor.(type) {
+		case func(map[string]string, kv.Service) (kv.Service, error):
+			return NewKV(config, k8s)
+		default:
+			return nil, fmt.Errorf("wrong signature for constuctor in plugin")
+		}
 
 	default:
 		return nil, fmt.Errorf("unsupported backend mode: '%s'", cfg.GetString(cfgMode))

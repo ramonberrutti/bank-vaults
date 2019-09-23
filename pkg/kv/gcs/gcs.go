@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 
 	"cloud.google.com/go/storage"
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
 )
 
 type gcsStorage struct {
@@ -32,7 +32,6 @@ type gcsStorage struct {
 // New creates a new kv.Service backed by Google GCS
 func New(bucket, prefix string) (kv.Service, error) {
 	cl, err := storage.NewClient(context.Background())
-
 	if err != nil {
 		return nil, fmt.Errorf("error creating gcs client: %s", err.Error())
 	}
@@ -56,7 +55,6 @@ func (g *gcsStorage) Get(key string) ([]byte, error) {
 	n := objectNameWithPrefix(g.prefix, key)
 
 	r, err := g.cl.Bucket(g.bucket).Object(n).NewReader(ctx)
-
 	if err != nil {
 		if err == storage.ErrObjectNotExist {
 			return nil, kv.NewNotFoundError("error getting object for key '%s': %s", n, err.Error())
@@ -64,9 +62,9 @@ func (g *gcsStorage) Get(key string) ([]byte, error) {
 		return nil, fmt.Errorf("error getting object for key '%s': %s", n, err.Error())
 	}
 
-	b, err := ioutil.ReadAll(r)
 	defer r.Close()
 
+	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("error reading object with key '%s': %s", n, err.Error())
 	}

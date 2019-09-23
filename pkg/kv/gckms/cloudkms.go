@@ -19,9 +19,10 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
 	"golang.org/x/oauth2/google"
-	cloudkms "google.golang.org/api/cloudkms/v1"
+	"google.golang.org/api/cloudkms/v1"
+	"google.golang.org/api/option"
 )
 
 // googleKms is an implementation of the kv.Service interface, that encrypts
@@ -38,14 +39,13 @@ var _ kv.Service = &googleKms{}
 // New creates a new kv.Service encrypted by Google KMS
 func New(store kv.Service, project, location, keyring, cryptoKey string) (kv.Service, error) {
 	ctx := context.Background()
-	client, err := google.DefaultClient(ctx, cloudkms.CloudPlatformScope)
 
+	client, err := google.DefaultClient(ctx, cloudkms.CloudPlatformScope)
 	if err != nil {
 		return nil, fmt.Errorf("error creating google client: %s", err.Error())
 	}
 
-	kmsService, err := cloudkms.New(client)
-
+	kmsService, err := cloudkms.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {
 		return nil, fmt.Errorf("error creating google kms service client: %s", err.Error())
 	}
@@ -83,7 +83,6 @@ func (g *googleKms) decrypt(s []byte) ([]byte, error) {
 
 func (g *googleKms) Get(key string) ([]byte, error) {
 	cipherText, err := g.store.Get(key)
-
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +92,6 @@ func (g *googleKms) Get(key string) ([]byte, error) {
 
 func (g *googleKms) Set(key string, val []byte) error {
 	cipherText, err := g.encrypt(val)
-
 	if err != nil {
 		return err
 	}

@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
-	v1 "k8s.io/api/core/v1"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -77,7 +77,7 @@ func (k *k8sStorage) Set(key string, val []byte) error {
 	secret, err := k.cl.CoreV1().Secrets(k.namespace).Get(k.secret, metav1.GetOptions{})
 
 	if errors.IsNotFound(err) {
-		secret := &v1.Secret{
+		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: k.namespace,
 				Name:      k.secret,

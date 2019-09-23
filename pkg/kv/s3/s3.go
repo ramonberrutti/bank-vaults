@@ -23,8 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	awss3 "github.com/aws/aws-sdk-go/service/s3"
-
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
 )
 
 type s3Storage struct {
@@ -74,7 +73,6 @@ func (s3 *s3Storage) Get(key string) ([]byte, error) {
 	}
 
 	r, err := s3.client.GetObject(&input)
-
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == awss3.ErrCodeNoSuchKey {
 			return nil, kv.NewNotFoundError("error getting object for key '%s': %s", n, aerr.Error())

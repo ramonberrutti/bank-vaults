@@ -20,7 +20,7 @@ import (
 	"io/ioutil"
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
 )
 
 type ossStorage struct {

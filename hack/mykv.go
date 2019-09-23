@@ -17,15 +17,16 @@ package main
 import (
 	"fmt"
 
-	"github.com/banzaicloud/bank-vaults/pkg/kv"
+	"github.com/banzaicloud/bank-vaults/pkg/sdk/kv"
 )
 
 type myKV struct {
+	child kv.Service
 }
 
-func New(config map[string]string) (kv.Service, error) {
+func NewKV(config map[string]string, child kv.Service) (kv.Service, error) {
 	fmt.Printf("myKV New(%+v)\n", config)
-	return &myKV{}, nil
+	return &myKV{child: child}, nil
 }
 
 func (h *myKV) Get(key string) ([]byte, error) {
